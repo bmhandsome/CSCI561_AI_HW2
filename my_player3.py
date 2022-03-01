@@ -1,3 +1,4 @@
+from pickle import TRUE
 import random
 import sys
 from copy import deepcopy
@@ -140,6 +141,29 @@ class GO:
                     return True
         # If none of the pieces in a allied group has an empty space, it has no liberty
         return False
+
+    def find_num_liberty_and_ally_member(self, i, j):
+        '''
+        Find number of liberty of a given stone as well as list of ally member. If a group of allied stones has no liberty, they all die.
+
+        :param i: row number of the board.
+        :param j: column number of the board.
+        :return: tuple list of ally member and number of liberty.
+        '''
+        num_of_liberty = 0
+        board = self.board
+        list_check_repect_point = []
+        ally_members = self.ally_dfs(i, j)
+        for member in ally_members:
+            neighbors = self.detect_neighbor(member[0], member[1])
+            for piece in neighbors:
+                # If there is empty space around a piece, it has liberty
+                if board[piece[0]][piece[1]] == 0:
+                    if ((piece[0], piece[1]) not in list_check_repect_point):
+                        num_of_liberty += 1
+                        list_check_repect_point.append((piece[0], piece[1]))
+        # If none of the pieces in a allied group has an empty space, it has no liberty
+        return (ally_members, num_of_liberty)
 
     def find_died_pieces(self, piece_type):
         '''
@@ -401,9 +425,79 @@ class GO:
             self.n_move += 1
             self.X_move = not self.X_move # Players take turn
 
-class RandomPlayer():
+class MyPlayer():
     def __init__(self):
-        self.type = 'random'
+        self.type = 'my_player'
+
+    def calculate_heuristic(self, go, placement, piece_type):
+        print(f"calculate for placement: {placement}")
+        # remove died piece after place stone
+        another_piece_type = 3 - piece_type
+        go.remove_died_pieces(another_piece_type)
+        
+        list_my_stone = []
+        list_opponent_stone = []
+        count_my_stone = 0 
+        count_opponent_stone = 0
+
+        for i in range(go.size):
+            for j in range(go.size):
+                if go.board[i][j] == piece_type: 
+                    count_my_stone += 1
+                    list_my_stone.append((i,j))
+                elif go.board[i][j] == another_piece_type: 
+                    count_opponent_stone += 1
+                    list_opponent_stone.append((i,j))
+        
+        #Heuristic1 Different Number of stones
+        diff_count_stone = count_my_stone - count_opponent_stone
+
+        list_my_stone_group_by_neighbor_and_liberty = []
+        while list_my_stone:
+            one_my_stone = list_my_stone[0]
+            ally_members, liberty = go.find_num_liberty_and_ally_member(one_my_stone[0], one_my_stone[1])
+            list_my_stone_group_by_neighbor_and_liberty.append((ally_members, liberty))
+            list_my_stone = [item for item in list_my_stone if item not in ally_members]
+
+        list_opponent_stone_group_by_neighbor_and_liberty = []
+        while list_opponent_stone:
+            one_opponent_stone = list_opponent_stone[0]
+            ally_members, liberty = go.find_num_liberty_and_ally_member(one_opponent_stone[0], one_opponent_stone[1])
+            list_opponent_stone_group_by_neighbor_and_liberty.append((ally_members, liberty))
+            list_opponent_stone = [item for item in list_opponent_stone if item not in ally_members]
+
+        heulistic_case_1 = 0
+        if diff_count_stone <= -1 * go.size: 
+            heulistic_case_1 = -1000
+        elif diff_count_stone < -0.5 * go.size:
+            heulistic_case_1 = -300
+        elif diff_count_stone > 0.5 * go.size:
+            heulistic_case_1 = 300
+        elif diff_count_stone >= go.size:
+            heulistic_case_1 = 1000
+
+
+        heulistic_case_2 = 0
+        #heuristic plus for my liberty
+        for group in list_my_stone_group_by_neighbor_and_liberty:
+            list_stone_group = group[0]
+            liberty = group[1]
+            heulistic_case_2 += (len(list_stone_group) ** liberty) + (len(list_stone_group) * liberty)
+        #heuristic minus for opponent liberty
+        for group in list_opponent_stone_group_by_neighbor_and_liberty:
+            list_stone_group = group[0]
+            liberty = group[1]
+            heulistic_case_2 -= len(list_stone_group) ** liberty + (len(list_stone_group) * liberty)
+
+        print(f"in calculate_heuristic function.....")
+        print(f'num of my stone: {count_my_stone}')
+        print(f'num of opponent stone: {count_opponent_stone}')
+        print(f'diff of num of stone: {diff_count_stone}')
+        print(f'list_my_stone_group_by_neighbor_and_liberty: {list_my_stone_group_by_neighbor_and_liberty}')
+        print(f'heulistic_case_2: {heulistic_case_2}')
+        go.visualize_board()
+
+        return heulistic_case_1 + heulistic_case_2
 
     def get_input(self, go, piece_type):
         '''
@@ -412,19 +506,39 @@ class RandomPlayer():
         :param go: Go instance.
         :param piece_type: 1('X') or 2('O').
         :return: (row, column) coordinate of input.
-        '''        
+        '''
+        countNumBlack = 0
+        countNumWhite = 0        
         possible_placements = []
         for i in range(go.size):
             for j in range(go.size):
+                if go.board[i][j] == 1: countNumBlack += 1
+                if go.board[i][j] == 2: countNumWhite += 1
                 if go.valid_place_check(i, j, piece_type, test_check = True):
                     possible_placements.append((i,j))
+        print(f'Number of Black Stone before make move: {countNumBlack}')
+        print(f'Number of White Stone before make move: {countNumWhite}')
+        print(f'Number of possible placement: {len(possible_placements)}')
+
+        placements_with_heuristic = []
+        #calculate heuristic for each possible placement
+        for placement in possible_placements:
+            go_with_placement = go.copy_board()
+            go_with_placement.board[placement[0]][placement[1]] = piece_type
+            heuristic = self.calculate_heuristic(go_with_placement, placement, piece_type)
+            placements_with_heuristic.append((placement, heuristic))
+
+        placements_with_heuristic.sort(key = lambda x: x[1], reverse = True)
+        print(f"placements_with_heuristic: {placements_with_heuristic}")
 
         if not possible_placements:
             return "PASS"
+        # elif placements_with_heuristic[0][1] < 0:
+        #     return "PASS"
         else:
-            return random.choice(possible_placements)
+            return placements_with_heuristic[0][0]
 
-def readInput(n, path="input.txt"):
+def readInput(n, path="/Users/bm/Desktop/USC Class/CSCI561_AI/HW_current_year/HW2/HW2_workspace/CSCI561_AI_HW2/input.txt"):
 
     with open(path, 'r') as f:
         lines = f.readlines()
@@ -436,7 +550,7 @@ def readInput(n, path="input.txt"):
 
         return piece_type, previous_board, board
 
-def writeOutput(result, path="output.txt"):
+def writeOutput(result, path="/Users/bm/Desktop/USC Class/CSCI561_AI/HW_current_year/HW2/HW2_workspace/CSCI561_AI_HW2/output.txt"):
     res = ""
     if result == "PASS":
         res = "PASS"
@@ -451,13 +565,16 @@ def writePass(path="output.txt"):
 		f.write("PASS")
 
 
-
 if __name__ == "__main__":
     N = 5
     piece_type, previous_board, board = readInput(N)
     go = GO(N)
     go.set_board(piece_type, previous_board, board)
-    player = RandomPlayer()
+    go.visualize_board()
+    print("--------------------")
+    player = MyPlayer()
     action = player.get_input(go, piece_type)
+    go.place_chess(action[0], action[1], piece_type)
+    go.visualize_board()
     print(action)
     writeOutput(action)
