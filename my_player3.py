@@ -546,18 +546,24 @@ class MyPlayer():
     def find_possible_placements_and_number_of_blank(self, go, piece_type):
         possible_placements = []
         blank = 0
-        
+        num_piece_type = 0
+        num_another_piece_type = 0
+        another_piece_type = 3 - piece_type
         for i in range(go.size):
             for j in range(go.size):
                 if go.board[i][j] == 0:
                     blank += 1
+                elif go.board[i][j] == piece_type:
+                    num_piece_type += 1
+                elif go.board[i][j] == another_piece_type:
+                    num_another_piece_type += 1
                 if go.valid_place_check(i, j, piece_type, test_check = True):
                     possible_placements.append((i, j))
         middle = (go.size - 1) / 2
         if possible_placements:
             possible_placements.sort(key = lambda x:  abs(middle - x[0]) + abs(middle - x[1]))
         #print(f'possible_placements: {possible_placements}')
-        return (possible_placements, blank)
+        return (possible_placements, (blank, num_piece_type, num_another_piece_type))
 
     def get_input(self, go, piece_type):
         '''
@@ -568,7 +574,8 @@ class MyPlayer():
         :return: (row, column) coordinate of input.
         '''     
         #print(f'in function get_input......................')
-        possible_placements, num_blank_space = self.find_possible_placements_and_number_of_blank(go, piece_type)
+        possible_placements, tuple_stone = self.find_possible_placements_and_number_of_blank(go, piece_type)
+    
         #print(f'Number of possible placement: {len(possible_placements)}')
         #print(f'possible placements: {possible_placements}')
         another_piece_type = 3 - piece_type
@@ -579,6 +586,17 @@ class MyPlayer():
         temp_move_path = []
         #calculate heuristic for each possible placement
         calculation_time_for_each_placement = MAX_TIME_FOR_EACH_MOVE_IN_MILLI / len(possible_placements)
+
+        #calculate max depth for iterative deepening
+        num_blank_space = tuple_stone[0]
+        num_piece_type = tuple_stone[1]
+        num_another_piece_type = tuple_stone[2]
+        max_depth = self.estimate_num_turn_left(go, num_blank_space, num_piece_type, num_another_piece_type)
+        print(f'max depth from estimation: {max_depth}')
+
+        max_depth = self.adjust_max_depth(max_depth)
+        print(f'max depth after adjust: {max_depth}')
+
         for placement in possible_placements:
             #print(f'in get input before iterative deepening.........................')
             #print(f'placement: {placement}')
@@ -586,7 +604,7 @@ class MyPlayer():
             go_with_placement.board[placement[0]][placement[1]] = piece_type
             go_with_placement.remove_died_pieces(another_piece_type)
 
-            temp_heuristic, temp_move_path = self.start_iterative_deepening(go_with_placement, piece_type, placement, num_blank_space, [placement], calculation_time_for_each_placement)
+            temp_heuristic, temp_move_path = self.start_iterative_deepening(go_with_placement, piece_type, placement, max_depth, [placement], calculation_time_for_each_placement)
             #print(f'in get input after iterative deepening.........................')
             #print(f'temp_heuristic: {temp_heuristic}')
             #print(f'placement: {placement}')
@@ -610,12 +628,27 @@ class MyPlayer():
         else:
             #return placements_with_heuristic[0][0]
             return best_placement
-
-    def start_iterative_deepening(self, go, piece_type, placement, num_blank_space, move_path , time_limit_for_each_search):
-        #print(f'in function start_iterative_deepening.................')
-        max_depth = num_blank_space - (go.size)
+    
+    def estimate_num_turn_left(self, go, num_blank_space, num_piece_type, num_another_piece_type):
+        all_possible_num = go.size ** 2
+        max_stone = 0
+        if num_piece_type >= num_another_piece_type:
+            max_stone = num_piece_type
+        else:
+            max_stone = num_another_piece_type
+        max_stone = max_stone * 2
+        all_possible_num = all_possible_num - max_stone
+        return all_possible_num - 1 
+    
+    def adjust_max_depth(self, max_depth):
+        if max_depth < 5:
+            max_depth = max_depth - 3
         if max_depth <= 2: 
-            max_depth = 2
+            max_depth = 1
+        return max_depth
+
+    def start_iterative_deepening(self, go, piece_type, placement, max_depth, move_path , time_limit_for_each_search):
+        #print(f'in function start_iterative_deepening.................')
         dept = 1
         startTimeThisSearch = getTimeNowInMilli()
         endTimeThisSearch = startTimeThisSearch + time_limit_for_each_search
@@ -644,7 +677,7 @@ class MyPlayer():
             heuristic = self.calculate_heuristic(go, piece_type, outest_placement)
             #print(f'move_path: {move_path} | heuristic: {heuristic}')
             return heuristic, move_path
-        possible_placements, blank = self.find_possible_placements_and_number_of_blank(go, piece_type)
+        possible_placements, tuple_stone = self.find_possible_placements_and_number_of_blank(go, piece_type)
         #print(f'possible_placements: {possible_placements}')
         heuristic = MIN_INT_IN_THIS_PROGRAM
         best_move_path = []
@@ -678,7 +711,7 @@ class MyPlayer():
             #print(f'move_path: {move_path} | heuristic: {heuristic}')
             return heuristic, move_path
         another_piece_type = 3 - piece_type
-        possible_placements, blank = self.find_possible_placements_and_number_of_blank(go, another_piece_type)
+        possible_placements, tuple_stone = self.find_possible_placements_and_number_of_blank(go, another_piece_type)
         #print(f'possible_placements: {possible_placements}')
         heuristic = MAX_INT_IN_THIS_PROGRAM
         best_move_path = []
