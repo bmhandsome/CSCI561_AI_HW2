@@ -132,4 +132,6 @@ dmypy.json
 .pyre/
 
 input.txt
+input*
 output.txt
+output*
