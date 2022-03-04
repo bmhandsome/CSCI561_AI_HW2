@@ -1,6 +1,4 @@
 from copy import deepcopy
-from itertools import count
-from shutil import move
 import time
 MAX_INT_IN_THIS_PROGRAM = 1000000000
 MIN_INT_IN_THIS_PROGRAM = -1000000000
@@ -459,6 +457,8 @@ class MyPlayer():
         
         #Heuristic1 Different Number of stones
         diff_count_stone = count_my_stone - count_opponent_stone
+        blank = go.size - count_my_stone - count_opponent_stone
+        estimate_turn_left = self.estimate_num_turn_left(go, blank, count_my_stone, count_opponent_stone)
 
         list_my_stone_group_by_neighbor_and_liberty = []
         while list_my_stone:
@@ -475,18 +475,31 @@ class MyPlayer():
             list_opponent_stone = [item for item in list_opponent_stone if item not in ally_members]
 
         heulistic_case_1 = 0
+        # if black
+        if piece_type == 1: 
+            if diff_count_stone > go.size / 2:
+                heulistic_case_1 += 1000000
+            else: 
+                heulistic_case_1 -= 1000000
+        # if white
+        elif piece_type == 2:
+            if diff_count_stone > -1 * (go.size / 2):
+                heulistic_case_1 += 1000000
+            else:
+                heulistic_case_1 -= 1000000
+
         if diff_count_stone <= -1 * go.size: 
-            heulistic_case_1 = -100000
+            heulistic_case_1 += -100000
         if diff_count_stone < -0.5 * go.size:
-            heulistic_case_1 = -30000
+            heulistic_case_1 += -30000
         if diff_count_stone <= -1:
-            heulistic_case_1 -= diff_count_stone * 15000
+            heulistic_case_1 += diff_count_stone * -15000
         if diff_count_stone >= 1:
             heulistic_case_1 += diff_count_stone * 15000
         if diff_count_stone > 0.5 * go.size:
-            heulistic_case_1 = 30000
+            heulistic_case_1 += 30000
         if diff_count_stone >= go.size:
-            heulistic_case_1 = 100000
+            heulistic_case_1 += 100000
 
 
         heulistic_case_2 = 0
@@ -494,30 +507,48 @@ class MyPlayer():
         for group in list_my_stone_group_by_neighbor_and_liberty:
             list_stone_group = group[0]
             liberty = group[1]
-            #heulistic_case_2 += (len(list_stone_group) ** liberty) + (len(list_stone_group) * liberty)
-            # if liberty > 3:
-            #     liberty = 3
             num_of_list_stone = len(list_stone_group)
-            # if num_of_list_stone >= 3:
-            #     num_of_list_stone = 3
-            heulistic_case_2 += num_of_list_stone << liberty
-            if liberty <= 1:
-                heulistic_case_2 -= 7000
-        #heuristic minus for opponent liberty
+            fix_constant = 0
+            if num_of_list_stone <= 1:
+                fix_constant += 10
+            elif num_of_list_stone > 1 and num_of_list_stone <= 3:
+                fix_constant += 30
+            elif num_of_list_stone > 3:
+                fix_constant += 100
+            heulistic_case_2 += fix_constant * num_of_list_stone * liberty
+            if liberty == 1:
+                heulistic_case_2 += -700 * num_of_list_stone
+            if liberty == 2:
+                heulistic_case_2 += -200 * num_of_list_stone
+            if liberty == 3:
+                heulistic_case_2 += -100 * num_of_list_stone
+        # #heuristic minus for opponent liberty
         for group in list_opponent_stone_group_by_neighbor_and_liberty:
             list_stone_group = group[0]
             liberty = group[1]
-            #heulistic_case_2 -= len(list_stone_group) ** liberty + (len(list_stone_group) * liberty)
-            heulistic_case_2 -= len(list_stone_group) << (liberty << 1)
-            if liberty <= 1:
-                heulistic_case_2 += 7000
-            elif liberty <= 2:
-                heulistic_case_2 += 2000
-            # if liberty <= 1:
-            #     heulistic_case_2 += len(list_stone_group) << (liberty << 2)
+            num_of_list_stone = len(list_stone_group)
+            fix_constant = 0
+            if num_of_list_stone <= 1:
+                fix_constant += 100
+            elif num_of_list_stone > 1 and num_of_list_stone <= 3:
+                fix_constant += 500
+            elif num_of_list_stone > 3:
+                fix_constant += 2000
+            heulistic_case_2 += -1 * fix_constant * num_of_list_stone * liberty
+
+            if liberty == 1:
+                heulistic_case_2 += 2000 * num_of_list_stone
+            if liberty == 2:
+                heulistic_case_2 += 800 * num_of_list_stone
+            if liberty == 3:
+                heulistic_case_2 += 250 * num_of_list_stone
+
+            heulistic_case_2 = heulistic_case_2 * estimate_turn_left
+
+
         heulistic_case_3 = 0
+        middle = (go.size - 1) / 2
         if  count_my_stone + count_opponent_stone < go.size:
-            middle = (go.size - 1) / 2
             if placement == (middle, middle):
                 heulistic_case_3 += 1000000
             elif placement == (middle - 1, middle - 1):
@@ -528,6 +559,13 @@ class MyPlayer():
                 heulistic_case_3 += 100000
             elif placement == (middle + 1, middle + 1):
                 heulistic_case_3 += 100000
+        i = placement[0]
+        j = placement[1]
+        divider = abs(middle - i) + abs(middle - j)
+        if divider <= 0:
+            divider = 1
+        heulistic_case_3 += 10000 / divider
+        
         # print(f"in calculate_heuristic function.....")
         # print(f'num of my stone: {count_my_stone}')
         # print(f'num of opponent stone: {count_opponent_stone}')
