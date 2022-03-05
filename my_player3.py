@@ -459,6 +459,7 @@ class MyPlayer():
         diff_count_stone = count_my_stone - count_opponent_stone
         blank = go.size - count_my_stone - count_opponent_stone
         estimate_turn_left = self.estimate_num_turn_left(go, blank, count_my_stone, count_opponent_stone)
+        estimate_turn_left = self.adjust_max_depth(estimate_turn_left)
 
         list_my_stone_group_by_neighbor_and_liberty = []
         while list_my_stone:
@@ -500,6 +501,9 @@ class MyPlayer():
             heulistic_case_1 += 30000
         if diff_count_stone >= go.size:
             heulistic_case_1 += 100000
+        
+        if estimate_turn_left <= 6:
+            heulistic_case_1 = heulistic_case_1 * 10
 
 
         heulistic_case_2 = 0
@@ -679,7 +683,7 @@ class MyPlayer():
         return all_possible_num - 1 
     
     def adjust_max_depth(self, max_depth):
-        if max_depth < 5:
+        if max_depth <= 5:
             max_depth = max_depth - 3
         if max_depth <= 2: 
             max_depth = 1
