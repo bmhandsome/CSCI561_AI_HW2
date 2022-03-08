@@ -476,33 +476,22 @@ class MyPlayer():
             list_opponent_stone = [item for item in list_opponent_stone if item not in ally_members]
 
         heulistic_case_1 = 0
+        max_int_for_calculate_heulistic = MAX_INT_IN_THIS_PROGRAM / 1000
         # if black
         if piece_type == 1: 
             if diff_count_stone > go.size / 2:
-                heulistic_case_1 += 1000000
+                heulistic_case_1 += max_int_for_calculate_heulistic
             else: 
-                heulistic_case_1 -= 1000000
+                heulistic_case_1 -= max_int_for_calculate_heulistic
         # if white
         elif piece_type == 2:
             if diff_count_stone > -1 * (go.size / 2):
-                heulistic_case_1 += 1000000
+                heulistic_case_1 += max_int_for_calculate_heulistic
             else:
-                heulistic_case_1 -= 1000000
+                heulistic_case_1 -= max_int_for_calculate_heulistic
 
-        if diff_count_stone <= -1 * go.size: 
-            heulistic_case_1 += -100000
-        if diff_count_stone < -0.5 * go.size:
-            heulistic_case_1 += -30000
-        if diff_count_stone <= -1:
-            heulistic_case_1 += diff_count_stone * -15000
-        if diff_count_stone >= 1:
-            heulistic_case_1 += diff_count_stone * 15000
-        if diff_count_stone > 0.5 * go.size:
-            heulistic_case_1 += 30000
-        if diff_count_stone >= go.size:
-            heulistic_case_1 += 100000
-        
-        if estimate_turn_left <= 6:
+        heulistic_case_1 += diff_count_stone * 100000        
+        if estimate_turn_left <= (go.size * go.size) / 2:
             heulistic_case_1 = heulistic_case_1 * 10
 
 
@@ -521,9 +510,9 @@ class MyPlayer():
                 fix_constant += 100
             heulistic_case_2 += fix_constant * num_of_list_stone * liberty
             if liberty == 1:
-                heulistic_case_2 += -700 * num_of_list_stone
+                heulistic_case_2 += -3000 * num_of_list_stone
             if liberty == 2:
-                heulistic_case_2 += -200 * num_of_list_stone
+                heulistic_case_2 += -300 * num_of_list_stone
             if liberty == 3:
                 heulistic_case_2 += -100 * num_of_list_stone
         # #heuristic minus for opponent liberty
@@ -541,7 +530,7 @@ class MyPlayer():
             heulistic_case_2 += -1 * fix_constant * num_of_list_stone * liberty
 
             if liberty == 1:
-                heulistic_case_2 += 2000 * num_of_list_stone
+                heulistic_case_2 += 2500 * num_of_list_stone
             if liberty == 2:
                 heulistic_case_2 += 800 * num_of_list_stone
             if liberty == 3:
@@ -683,9 +672,11 @@ class MyPlayer():
         return all_possible_num - 1 
     
     def adjust_max_depth(self, max_depth):
-        if max_depth <= 5:
-            max_depth = max_depth - 3
-        if max_depth <= 2: 
+        if max_depth <= 8 and max_depth > 6:
+            max_depth = max_depth - 4
+        elif max_depth <= 6 and max_depth > 3:
+            max_depth = max_depth - 2
+        elif max_depth <= 3: 
             max_depth = 1
         return max_depth
 
