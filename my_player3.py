@@ -433,10 +433,6 @@ class MyPlayer():
         self.type = 'my_player'
 
     def calculate_heuristic(self, go, piece_type, placement):
-        #print(f"calculate for placement: {placement}")
-        # remove died piece after place stone
-        #print(f'in function calculate_heuristic.............')
-        #go.visualize_board()
         
         another_piece_type = 3 - piece_type
         go.remove_died_pieces(another_piece_type)
@@ -459,7 +455,6 @@ class MyPlayer():
         diff_count_stone = count_my_stone - count_opponent_stone
         blank = go.size - count_my_stone - count_opponent_stone
         estimate_turn_left = self.estimate_num_turn_left(go, blank, count_my_stone, count_opponent_stone)
-        estimate_turn_left = self.adjust_max_depth(estimate_turn_left)
 
         list_my_stone_group_by_neighbor_and_liberty = []
         while list_my_stone:
@@ -476,35 +471,23 @@ class MyPlayer():
             list_opponent_stone = [item for item in list_opponent_stone if item not in ally_members]
 
         heulistic_case_1 = 0
+        max_int_for_calculate_heulistic = MAX_INT_IN_THIS_PROGRAM / 1000
         # if black
         if piece_type == 1: 
             if diff_count_stone > go.size / 2:
-                heulistic_case_1 += 1000000
+                heulistic_case_1 += max_int_for_calculate_heulistic
             else: 
-                heulistic_case_1 -= 1000000
+                heulistic_case_1 -= max_int_for_calculate_heulistic
         # if white
         elif piece_type == 2:
             if diff_count_stone > -1 * (go.size / 2):
-                heulistic_case_1 += 1000000
+                heulistic_case_1 += max_int_for_calculate_heulistic
             else:
-                heulistic_case_1 -= 1000000
+                heulistic_case_1 -= max_int_for_calculate_heulistic
 
-        if diff_count_stone <= -1 * go.size: 
-            heulistic_case_1 += -100000
-        if diff_count_stone < -0.5 * go.size:
-            heulistic_case_1 += -30000
-        if diff_count_stone <= -1:
-            heulistic_case_1 += diff_count_stone * -15000
-        if diff_count_stone >= 1:
-            heulistic_case_1 += diff_count_stone * 15000
-        if diff_count_stone > 0.5 * go.size:
-            heulistic_case_1 += 30000
-        if diff_count_stone >= go.size:
-            heulistic_case_1 += 100000
-        
-        if estimate_turn_left <= 6:
+        heulistic_case_1 += diff_count_stone * 100000        
+        if estimate_turn_left <= (go.size * go.size) / 2:
             heulistic_case_1 = heulistic_case_1 * 10
-
 
         heulistic_case_2 = 0
         #heuristic plus for my liberty
@@ -521,9 +504,9 @@ class MyPlayer():
                 fix_constant += 100
             heulistic_case_2 += fix_constant * num_of_list_stone * liberty
             if liberty == 1:
-                heulistic_case_2 += -700 * num_of_list_stone
+                heulistic_case_2 += -3000 * num_of_list_stone
             if liberty == 2:
-                heulistic_case_2 += -200 * num_of_list_stone
+                heulistic_case_2 += -300 * num_of_list_stone
             if liberty == 3:
                 heulistic_case_2 += -100 * num_of_list_stone
         # #heuristic minus for opponent liberty
@@ -541,14 +524,13 @@ class MyPlayer():
             heulistic_case_2 += -1 * fix_constant * num_of_list_stone * liberty
 
             if liberty == 1:
-                heulistic_case_2 += 2000 * num_of_list_stone
+                heulistic_case_2 += 2500 * num_of_list_stone
             if liberty == 2:
                 heulistic_case_2 += 800 * num_of_list_stone
             if liberty == 3:
                 heulistic_case_2 += 250 * num_of_list_stone
 
             heulistic_case_2 = heulistic_case_2 * estimate_turn_left
-
 
         heulistic_case_3 = 0
         middle = (go.size - 1) / 2
@@ -569,20 +551,6 @@ class MyPlayer():
         if divider <= 0:
             divider = 1
         heulistic_case_3 += 10000 / divider
-        
-        # print(f"in calculate_heuristic function.....")
-        # print(f'num of my stone: {count_my_stone}')
-        # print(f'num of opponent stone: {count_opponent_stone}')
-        # print(f'diff of num of stone: {diff_count_stone}')
-        # print(f'list_my_stone_group_by_neighbor_and_liberty: {list_my_stone_group_by_neighbor_and_liberty}')
-        # print(f'list_opponent_stone_group_by_neighbor_and_liberty: {list_opponent_stone_group_by_neighbor_and_liberty}')
-
-        # print(f'heulistic_case_1: {heulistic_case_1}')
-        # print(f'heulistic_case_2: {heulistic_case_2}')
-
-
-        #go.visualize_board()
-
         return heulistic_case_1 + heulistic_case_2 + heulistic_case_3
 
     def find_possible_placements_and_number_of_blank(self, go, piece_type):
@@ -604,7 +572,6 @@ class MyPlayer():
         middle = (go.size - 1) / 2
         if possible_placements:
             possible_placements.sort(key = lambda x:  abs(middle - x[0]) + abs(middle - x[1]))
-        #print(f'possible_placements: {possible_placements}')
         return (possible_placements, (blank, num_piece_type, num_another_piece_type))
 
     def get_input(self, go, piece_type):
@@ -615,11 +582,8 @@ class MyPlayer():
         :param piece_type: 1('X') or 2('O').
         :return: (row, column) coordinate of input.
         '''     
-        #print(f'in function get_input......................')
         possible_placements, tuple_stone = self.find_possible_placements_and_number_of_blank(go, piece_type)
-    
-        #print(f'Number of possible placement: {len(possible_placements)}')
-        #print(f'possible placements: {possible_placements}')
+
         another_piece_type = 3 - piece_type
         best_placement = ()
         max_heuristic = MIN_INT_IN_THIS_PROGRAM
@@ -629,37 +593,37 @@ class MyPlayer():
         #calculate heuristic for each possible placement
         calculation_time_for_each_placement = MAX_TIME_FOR_EACH_MOVE_IN_MILLI / len(possible_placements)
 
-        #calculate max depth for iterative deepening
         num_blank_space = tuple_stone[0]
         num_piece_type = tuple_stone[1]
         num_another_piece_type = tuple_stone[2]
-        max_depth = self.estimate_num_turn_left(go, num_blank_space, num_piece_type, num_another_piece_type)
-        print(f'max depth from estimation: {max_depth}')
+        
+        if num_piece_type + num_another_piece_type == 0:
+            writeTurn("0")
+        elif num_piece_type + num_another_piece_type == 1:
+            writeTurn("1")
 
-        max_depth = self.adjust_max_depth(max_depth)
-        print(f'max depth after adjust: {max_depth}')
+        max_depth = 0
+        num_turn = 0
+        try:
+            num_turn = int(readTurn())
+            max_depth = (go.size ** 2) - num_turn - 1
+        except Exception as e:
+            print(e)
+            max_depth = self.estimate_num_turn_left(go, num_blank_space, num_piece_type, num_another_piece_type)
+            num_turn = num_piece_type + num_another_piece_type
+        print(f'max depth : {max_depth}')
 
         for placement in possible_placements:
-            #print(f'in get input before iterative deepening.........................')
-            #print(f'placement: {placement}')
             go_with_placement = go.copy_board()
             go_with_placement.board[placement[0]][placement[1]] = piece_type
             go_with_placement.remove_died_pieces(another_piece_type)
 
             temp_heuristic, temp_move_path = self.start_iterative_deepening(go_with_placement, piece_type, placement, max_depth, [placement], calculation_time_for_each_placement)
-            #print(f'in get input after iterative deepening.........................')
-            #print(f'temp_heuristic: {temp_heuristic}')
-            #print(f'placement: {placement}')
             if temp_heuristic > max_heuristic:
                 max_heuristic = temp_heuristic
                 best_move_path = temp_move_path
                 best_placement = placement
             
-        #     heuristic = self.calculate_heuristic(go_with_placement, placement, piece_type)
-        #     placements_with_heuristic.append((placement, heuristic))
-
-        # placements_with_heuristic.sort(key = lambda x: x[1], reverse = True)
-        # print(f"placements_with_heuristic: {placements_with_heuristic}")
         print(f'best_move: {best_placement}')
         print(f'best_move_path: {best_move_path}')
         print(f'max_heuristic: {max_heuristic}')
@@ -668,10 +632,11 @@ class MyPlayer():
         # elif placements_with_heuristic[0][1] < 0:
         #     return "PASS"
         else:
-            #return placements_with_heuristic[0][0]
+            writeTurn(str(num_turn + 2))
             return best_placement
     
     def estimate_num_turn_left(self, go, num_blank_space, num_piece_type, num_another_piece_type):
+        
         all_possible_num = go.size ** 2
         max_stone = 0
         if num_piece_type >= num_another_piece_type:
@@ -679,18 +644,17 @@ class MyPlayer():
         else:
             max_stone = num_another_piece_type
         max_stone = max_stone * 2
-        all_possible_num = all_possible_num - max_stone
-        return all_possible_num - 1 
-    
-    def adjust_max_depth(self, max_depth):
-        if max_depth <= 5:
-            max_depth = max_depth - 3
-        if max_depth <= 2: 
-            max_depth = 1
-        return max_depth
+        all_possible_num = all_possible_num - max_stone - 1
+         #adjust_max_depth
+        if all_possible_num <= 8 and all_possible_num > 6:
+             all_possible_num = all_possible_num - 4
+        elif all_possible_num <= 6 and all_possible_num > 3:
+            all_possible_num = all_possible_num - 2
+        elif all_possible_num <= 3:
+            all_possible_num = 1
+        return all_possible_num
 
     def start_iterative_deepening(self, go, piece_type, placement, max_depth, move_path , time_limit_for_each_search):
-        #print(f'in function start_iterative_deepening.................')
         dept = 1
         startTimeThisSearch = getTimeNowInMilli()
         endTimeThisSearch = startTimeThisSearch + time_limit_for_each_search
@@ -701,72 +665,53 @@ class MyPlayer():
             now = getTimeNowInMilli()
             if now >= endTimeThisSearch:
                 break
-            #print(f'depth of iterative deepening: {dept}')
             heuristic, best_move_path = self.min(go, piece_type, placement, dept, MIN_INT_IN_THIS_PROGRAM, MAX_INT_IN_THIS_PROGRAM, move_path, endTimeThisSearch)
             dept += 1
         return heuristic, best_move_path
 
-    # def minimax(self, go, piece_type, depth, endTime):
-    #     print(f'in function minimax...................')
-    #     print(f'depth: {depth}')
-    #     return self.min(go, piece_type, depth, endTime)
-
     def max(self, go, piece_type, outest_placement, depth, alpha, beta, move_path, endTime):
-        #go.visualize_board()
         another_piece_type = 3 - piece_type
         now = getTimeNowInMilli()
         if depth == 0 or now >= endTime:
             heuristic = self.calculate_heuristic(go, piece_type, outest_placement)
-            #print(f'move_path: {move_path} | heuristic: {heuristic}')
             return heuristic, move_path
         possible_placements, tuple_stone = self.find_possible_placements_and_number_of_blank(go, piece_type)
-        #print(f'possible_placements: {possible_placements}')
         heuristic = MIN_INT_IN_THIS_PROGRAM
         best_move_path = []
         if not possible_placements: 
             heuristic = self.calculate_heuristic(go, piece_type, outest_placement)
-            #print(f'move_path: {move_path} | heuristic: {heuristic}')
             return heuristic, move_path
         for placement in possible_placements:
-            #print(f'placement: {placement}')
             go_with_placement = go.copy_board()
             go_with_placement.board[placement[0]][placement[1]] = piece_type
             go_with_placement.remove_died_pieces(another_piece_type)
-            #go_with_placement.visualize_board()
             temp_path = move_path.copy()
             temp_path.append(placement)
             temp_heuristic, temp_move_path = self.min(go_with_placement, piece_type, outest_placement, depth - 1, alpha, beta, temp_path, endTime)
             if temp_heuristic > heuristic:
                 heuristic = temp_heuristic
                 best_move_path = temp_move_path
-            #heuristic = max(heuristic, self.min(go_with_placement, piece_type, depth - 1, alpha, beta, move_path, endTime))
             if heuristic >= beta: 
                 return heuristic, best_move_path
             alpha = max(alpha, heuristic)
         return heuristic, best_move_path
 
     def min(self, go, piece_type, outest_placement, depth, alpha, beta, move_path, endTime):
-        #go.visualize_board()
         now = getTimeNowInMilli()
         if depth == 0 or now >= endTime:
             heuristic = self.calculate_heuristic(go, piece_type, outest_placement)
-            #print(f'move_path: {move_path} | heuristic: {heuristic}')
             return heuristic, move_path
         another_piece_type = 3 - piece_type
         possible_placements, tuple_stone = self.find_possible_placements_and_number_of_blank(go, another_piece_type)
-        #print(f'possible_placements: {possible_placements}')
         heuristic = MAX_INT_IN_THIS_PROGRAM
         best_move_path = []
         if not possible_placements: 
             heuristic = self.calculate_heuristic(go, piece_type, outest_placement)
-            #print(f'move_path: {move_path} | heuristic: {heuristic}')
             return heuristic, move_path
         for placement in possible_placements:
-            #print(f'placement: {placement}')
             go_with_placement = go.copy_board()
             go_with_placement.board[placement[0]][placement[1]] = another_piece_type
             go_with_placement.remove_died_pieces(piece_type)
-            #go_with_placement.visualize_board()
             temp_path = move_path.copy()
             temp_path.append(placement)
             temp_heuristic, temp_move_path = self.max(go_with_placement, piece_type, outest_placement, depth - 1, alpha, beta, temp_path, endTime)
@@ -778,8 +723,6 @@ class MyPlayer():
             beta = min(beta, heuristic)
         return heuristic, best_move_path
         
-
-#def readInput(n, path="/Users/bm/Desktop/USC Class/CSCI561_AI/HW_current_year/HW2/HW2_workspace/CSCI561_AI_HW2/input.txt"):
 def readInput(n, path="input.txt"):
     with open(path, 'r') as f:
         lines = f.readlines()
@@ -791,7 +734,6 @@ def readInput(n, path="input.txt"):
 
         return piece_type, previous_board, board
 
-#def writeOutput(result, path="/Users/bm/Desktop/USC Class/CSCI561_AI/HW_current_year/HW2/HW2_workspace/CSCI561_AI_HW2/output.txt"):
 def writeOutput(result, path="output.txt"):
     res = ""
     if result == "PASS":
@@ -806,6 +748,15 @@ def writePass(path="output.txt"):
 	with open(path, 'w') as f:
 		f.write("PASS")
 
+def readTurn(path="helper.txt"):
+    turn = 0
+    with open(path, 'rt') as f:
+        turn = f.readline()
+    return turn
+
+def writeTurn(turn, path="helper.txt"):
+    with open(path, 'wt') as f:
+        f.write(turn)
 
 if __name__ == "__main__":
     N = 5
