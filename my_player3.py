@@ -606,7 +606,7 @@ class MyPlayer():
         num_turn = 0
         try:
             num_turn = int(readTurn())
-            max_depth = (go.size ** 2) - num_turn - 1
+            max_depth = (go.size ** 2) - num_turn - 2
         except Exception as e:
             print(e)
             max_depth = self.estimate_num_turn_left(go, num_blank_space, num_piece_type, num_another_piece_type)
@@ -655,7 +655,7 @@ class MyPlayer():
         return all_possible_num
 
     def start_iterative_deepening(self, go, piece_type, placement, max_depth, move_path , time_limit_for_each_search):
-        dept = 1
+        dept = 0
         startTimeThisSearch = getTimeNowInMilli()
         endTimeThisSearch = startTimeThisSearch + time_limit_for_each_search
 
