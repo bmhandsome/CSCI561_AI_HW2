@@ -509,8 +509,7 @@ class MyPlayer():
             if liberty == 1:
                 heulistic_case_2 += -3000 * num_of_list_stone
             if liberty == 2:
-
-                heulistic_case_2 += -500 * num_of_list_stone
+                heulistic_case_2 += -300 * num_of_list_stone
             if liberty == 3:
                 heulistic_case_2 += -100 * num_of_list_stone
         # #heuristic minus for opponent liberty
@@ -526,11 +525,10 @@ class MyPlayer():
             elif num_of_list_stone > 3:
                 fix_constant += 2000
             heulistic_case_2 += -1 * fix_constant * num_of_list_stone * liberty
-
             if liberty == 1:
-                heulistic_case_2 += 2200 * num_of_list_stone
+                heulistic_case_2 += 2500 * num_of_list_stone
             if liberty == 2:
-                heulistic_case_2 += 850 * num_of_list_stone
+                heulistic_case_2 += 800 * num_of_list_stone
             if liberty == 3:
                 heulistic_case_2 += 250 * num_of_list_stone
 
@@ -602,7 +600,7 @@ class MyPlayer():
         num_of_placements = len(possible_placements)
         if num_of_placements <= 0:
             num_of_placements = 1
-        calculation_time_for_each_placement = ((MAX_TIME_FOR_EACH_MOVE_IN_MILLI - (now - START_TIME)) - 3000) / num_of_placements
+        calculation_time_for_each_placement = ((MAX_TIME_FOR_EACH_MOVE_IN_MILLI - (now - START_TIME)) - 1500) / num_of_placements
 
         num_blank_space = tuple_stone[0]
         num_piece_type = tuple_stone[1]
